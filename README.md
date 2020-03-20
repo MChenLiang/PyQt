@@ -3,3 +3,5 @@
 
 # navigationWidget
 ![](./demo/navigationWidget.gif)
+# pageWidget
+![](./demo/pageWidget.gif)
