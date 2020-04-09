@@ -11,7 +11,58 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 
-import QSS
+try:
+    from .. import QSS
+except:
+    class QSS:
+        page_selected = """
+        QLabel{
+            border: 1px solid #aaa;
+            border-radius: 4px;
+        	font: 15px "Microsoft Yahei";
+
+         }
+        """
+
+        page_noSelected = """
+        QLabel{
+            border: none;
+        	font: 12px "Microsoft Yahei";
+         }
+
+        QLabel::drop-down {
+        	border:none;
+        }
+
+        QLabel::hover{
+            border: 1px solid #aaa;
+            border-radius: 4px;
+        	font: 15px "Microsoft Yahei";
+
+         }
+
+        QLabel::pressed{
+            border: none;
+        	font: 12px "Microsoft Yahei";
+
+         }
+
+        """
+
+        page_lock = """
+        QLabel{
+            border: none;
+        	font: 12px "Microsoft Yahei";
+         }
+        """
+
+        page_lineEdit = """
+        QLineEdit{
+            background:transparent;
+            border-width: 0;
+            font: 12px "Microsoft Yahei";
+            border-style:outset}
+        """
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -110,7 +161,7 @@ class navigationpages(QtWidgets.QWidget):
     valueChanged = QtCore.pyqtSignal(int, int)
     itemChanged = QtCore.pyqtSignal(int)
     _pageMax = 10
-    _totalNumber = 5000
+    _totalNumber = 500
 
     @property
     def totalNumber(self):
@@ -119,10 +170,19 @@ class navigationpages(QtWidgets.QWidget):
     @totalNumber.setter
     def totalNumber(self, val):
         self._totalNumber = val
+        page = self._totalNumber / self.pageItemNumber
+        offset = self._totalNumber % self.pageItemNumber
+        if offset:
+            page += 1
+        # 重新设置page
+        self.pageMax = page
+        self.__setSelected(self.label01, 1)
+        # 发出修改信号
+        self.current_valueChanged_connect(1)
 
     @totalNumber.deleter
     def totalNumber(self):
-        self._totalNumber = 5000
+        self._totalNumber = 500
 
     @property
     def pageMax(self):
@@ -147,8 +207,10 @@ class navigationpages(QtWidgets.QWidget):
         # 设置最后一页为最大值
         self.label08.setText(self.pageMax)
 
-        if self.pageMax == 8:
+        if self.pageMax in [7, 8]:
             self.label07.setText(7)
+            self.label07.setLock(False)
+        self.__setSelected(self.label01, 1)
 
     @pageMax.deleter
     def pageMax(self):
@@ -157,7 +219,7 @@ class navigationpages(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(navigationpages, self).__init__(parent)
         # 当前每页的可选条目
-        self.pageItemN = [200, 500, 1000]
+        self.pageItemN = [20, 50, 100]
         # 当前每页条目
         self.pageItemNumber = self.pageItemN[1]
         # 当前页码
@@ -240,6 +302,7 @@ class navigationpages(QtWidgets.QWidget):
         # 页码条跳转到第几页
         self.lineEditor_current.textModified.connect(self.textModified_connect)
 
+    @QtCore.pyqtSlot(str)
     def itemNumber_clicked_connect(self, val):
         val = int(val)
         if val == self.pageItemNumber:
@@ -248,6 +311,7 @@ class navigationpages(QtWidgets.QWidget):
         if val not in self.pageItemN:
             return
 
+        currentNumber = self.pageItemNumber
         # 设置当前选择的pageItem
         for each in self.itemNumber:
             each.setSelected(False)
@@ -259,12 +323,14 @@ class navigationpages(QtWidgets.QWidget):
                 break
 
         # 重新设置page
-        self.pageMax = int(self.totalNumber / val)
-        print (self.pageMax )
+        pageMax = self.totalNumber / val
+        if self.totalNumber % val:
+            pageMax += 1
+        self.pageMax = pageMax
         self.__setSelected(self.label01, 1)
         # 发出修改信号
         self.itemChanged.emit(val)
-        print(u'每页可以加载由{}改为{}条数据'.format(self.pageItemNumber, val))
+        print(u'每页可以加载由{}改为{}条数据'.format(currentNumber, val))
         self.current_valueChanged_connect(1)
 
     def textModified_connect(self, index):
@@ -336,13 +402,14 @@ class navigationpages(QtWidgets.QWidget):
         :param index: 第几页
         :return:
         """
-        index = int(index)
-        # 如果是当前页的话，跳过
-        if index == self.pageNumber:
-            return
 
         # 如果选择到了 ... 的控件，不执行
         if sender.isLock:
+            return
+
+        index = int(index)
+        # 如果是当前页的话，跳过
+        if index == self.pageNumber:
             return
 
         if sender == self.label01:
@@ -355,7 +422,6 @@ class navigationpages(QtWidgets.QWidget):
         # 触发信号发射出去
         self.lineEditor_current.setText(index)
         self.current_valueChanged_connect(index)
-
         if sender == self.label03:
             if index > 3:
                 self.__setSelected(self.label04, index)
@@ -374,9 +440,10 @@ class navigationpages(QtWidgets.QWidget):
         :param index:
         :return:
         """
+        # 把所有选择的都关掉
         for each in self.numberPage:
             each.setSelected(0)
-
+        # 设置选择的label
         sender.setSelected(1)
         sender.setText(index)
         # 变小
@@ -406,8 +473,9 @@ class navigationpages(QtWidgets.QWidget):
                     label.setText(self.pageMax - 2 + i)
             else:
                 self.label07.setLock(False)
+                pageMax = self.pageMax if self.pageMax > 8 else 8
                 for (i, label) in enumerate(self.numberDnPage):
-                    label.setText(self.pageMax - 5 + i)
+                    label.setText(pageMax - 5 + i)
 
             return
 
@@ -433,6 +501,7 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication([])
 
     ui = navigationpages()
-    ui.totalNumber = 5000
     ui.show()
+    ui.totalNumber = 350
+    # ui.setPageMax(10)
     app.exec_()

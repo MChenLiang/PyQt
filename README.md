@@ -5,3 +5,5 @@
 ![](./demo/navigationWidget.gif)
 # pageWidget
 ![](./demo/pageWidget.gif)
+# gifPlayer
+![](./demo/gifPlayer.gif)
